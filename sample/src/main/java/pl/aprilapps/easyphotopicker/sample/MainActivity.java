@@ -1,8 +1,11 @@
 package pl.aprilapps.easyphotopicker.sample;
 
+import static java.sql.DriverManager.println;
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import pl.aprilapps.easyphotopicker.ChooserType;
 import pl.aprilapps.easyphotopicker.DefaultCallback;
@@ -180,12 +184,17 @@ public class MainActivity extends AppCompatActivity implements EasyImage.EasyIma
 
         easyImage.handleActivityResult(requestCode, resultCode, data, this, new DefaultCallback() {
             @Override
-            public void onMediaFilesPicked(MediaFile[] imageFiles, MediaSource source) {
-                for (MediaFile imageFile : imageFiles) {
-                    Log.d("EasyImage", "Image file returned: " + imageFile.getFile().toString());
-                }
-                onPhotosReturned(imageFiles);
+            public void onMediaFilesPicked(@NonNull List<? extends Uri> uri, @NonNull MediaSource source) {
+                System.out.println("PICKED " + uri);
             }
+
+//            @Override
+//            public void onMediaFilesPicked(MediaFile[] imageFiles, MediaSource source) {
+//                for (MediaFile imageFile : imageFiles) {
+//                    Log.d("EasyImage", "Image file returned: " + imageFile.getFile().toString());
+//                }
+//                onPhotosReturned(imageFiles);
+//            }
 
             @Override
             public void onImagePickerError(@NonNull Throwable error, @NonNull MediaSource source) {

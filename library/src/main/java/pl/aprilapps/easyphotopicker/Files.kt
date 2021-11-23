@@ -61,39 +61,61 @@ object Files {
 
     private fun getFixedRotationBitmap(bitmapFile: File): Bitmap {
         val exifInterface = ExifInterface(bitmapFile.path)
-        val orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        val orientation = exifInterface.getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL
+        )
 
         return with(BitmapFactory.decodeFile(bitmapFile.path)) {
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> rotateImage(this, 90f)
                 ExifInterface.ORIENTATION_ROTATE_180 -> rotateImage(this, 180f)
                 ExifInterface.ORIENTATION_ROTATE_270 -> rotateImage(this, 270f)
-                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> flipImage(this, horizontal = true, vertical = false)
-                ExifInterface.ORIENTATION_FLIP_VERTICAL -> flipImage(this, horizontal = false, vertical = true)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> flipImage(
+                    this,
+                    horizontal = true,
+                    vertical = false
+                )
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> flipImage(
+                    this,
+                    horizontal = false,
+                    vertical = true
+                )
                 else -> this
             }
         }
     }
 
     @RequiresApi(29)
-    private fun copyImageToPublicGallery(context: Context, fileToCopy: File, folderName: String): String {
+    private fun copyImageToPublicGallery(
+        context: Context,
+        fileToCopy: File,
+        folderName: String
+    ): Uri {
         val bitmapToCopy = getFixedRotationBitmap(fileToCopy)
         val contentResolver = context.contentResolver
         val contentValues = ContentValues()
         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileToCopy.name)
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpg")
-        contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/$folderName")
-        val copyUri: Uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+        contentValues.put(
+            MediaStore.MediaColumns.RELATIVE_PATH,
+            "${Environment.DIRECTORY_PICTURES}/$folderName"
+        )
+        val copyUri: Uri =
+            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
         val outputStream: OutputStream = contentResolver.openOutputStream(copyUri)!!
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
-        Log.d(EASYIMAGE_LOG_TAG, "Copied image to public gallery: ${copyUri.path}")
-        return copyUri.path!!
+        println("Copied image to public gallery: ${copyUri}")
+        return copyUri
     }
 
-    private fun legacyCopyImageToPublicGallery(fileToCopy: File, folderName: String): String {
+    private fun legacyCopyImageToPublicGallery(fileToCopy: File, folderName: String): Uri {
         val bitmapToCopy = getFixedRotationBitmap(fileToCopy)
-        val legacyExternalStorageDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), folderName)
+        val legacyExternalStorageDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            folderName
+        )
         if (!legacyExternalStorageDir.exists()) legacyExternalStorageDir.mkdirs()
         val copyFile = File(legacyExternalStorageDir, fileToCopy.name)
         copyFile.createNewFile()
@@ -101,27 +123,23 @@ object Files {
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
         Log.d(EASYIMAGE_LOG_TAG, "Copied image to public gallery: ${copyFile.path}")
-        return copyFile.path
+        return Uri.fromFile(copyFile)
     }
 
 
-    internal fun copyImagesToPublicGallery(context: Context, folderName: String, filesToCopy: List<File>) {
-        Thread {
-            val copiedFilesPaths: List<String?> = filesToCopy.map { fileToCopy ->
-                try {
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        copyImageToPublicGallery(context, fileToCopy, folderName)
-                    } else {
-                        legacyCopyImageToPublicGallery(fileToCopy, folderName)
-                    }
-                } catch (error: Throwable) {
-                    error.printStackTrace()
-                    Log.e(EASYIMAGE_LOG_TAG, "File couldn't be copied to public gallery: ${fileToCopy.name}")
-                    null
-                }
+    internal fun copyImagesToPublicGallery(
+        context: Context,
+        folderName: String,
+        filesToCopy: List<File>
+    ): List<Uri> {
+        return filesToCopy.map {
+            if (Build.VERSION.SDK_INT >= 29) {
+                copyImageToPublicGallery(context, it, folderName)
+            } else {
+                legacyCopyImageToPublicGallery(it, folderName)
             }
-            runMediaScanner(context, copiedFilesPaths.filterNotNull())
-        }.run()
+        }
+        //runMediaScanner(context, copiedFilesPaths.filterNotNull())
     }
 
     private fun runMediaScanner(context: Context, paths: List<String>) {
@@ -133,7 +151,7 @@ object Files {
     @Throws(IOException::class)
     internal fun pickedExistingPicture(context: Context, photoUri: Uri): File {
         val pictureInputStream = context.contentResolver.openInputStream(photoUri)
-                ?: throw IOException("Could not open input stream for a file: $photoUri")
+            ?: throw IOException("Could not open input stream for a file: $photoUri")
 
         val directory = tempImageDirectory(context)
         val photoFile = File(directory, generateFileName() + "." + getMimeType(context, photoUri))

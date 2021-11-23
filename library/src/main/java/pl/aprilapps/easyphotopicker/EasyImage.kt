@@ -3,6 +3,7 @@ package pl.aprilapps.easyphotopicker
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -25,7 +26,7 @@ class EasyImage private constructor(
     interface Callbacks {
         fun onImagePickerError(error: Throwable, source: MediaSource)
 
-        fun onMediaFilesPicked(imageFiles: Array<MediaFile>, source: MediaSource)
+        fun onMediaFilesPicked(uri: List<Uri>, source: MediaSource)
 
         fun onCanceled(source: MediaSource)
     }
@@ -188,7 +189,7 @@ class EasyImage private constructor(
             val uri = resultIntent.data!!
             val photoFile = Files.pickedExistingPicture(activity, uri)
             val mediaFile = MediaFile(uri, photoFile)
-            callbacks.onMediaFilesPicked(arrayOf(mediaFile), MediaSource.DOCUMENTS)
+            callbacks.onMediaFilesPicked(mutableListOf(uri), MediaSource.DOCUMENTS)
         } catch (error: Throwable) {
             error.printStackTrace()
             callbacks.onImagePickerError(error, MediaSource.DOCUMENTS)
@@ -209,7 +210,9 @@ class EasyImage private constructor(
                         files.add(MediaFile(uri, file))
                     }
                     if (files.isNotEmpty()) {
-                        callbacks.onMediaFilesPicked(files.toTypedArray(), MediaSource.GALLERY)
+                        val uris = mutableListOf<Uri>()
+                        files.forEach { uris.add(it.uri) }
+                        callbacks.onMediaFilesPicked(uris, MediaSource.GALLERY)
                     } else {
                         callbacks.onImagePickerError(EasyImageException("No files were returned from gallery"), MediaSource.GALLERY)
                     }
@@ -233,9 +236,10 @@ class EasyImage private constructor(
         lastCameraFile?.let { cameraFile ->
             try {
                 if (cameraFile.uri.toString().isEmpty()) Intents.revokeWritePermission(activity, cameraFile.uri)
+                println("CAMERA FILE $cameraFile")
                 val files = mutableListOf(cameraFile)
-                if (copyImagesToPublicGalleryFolder) Files.copyImagesToPublicGallery(activity, folderName, files.map { it.file })
-                callbacks.onMediaFilesPicked(files.toTypedArray(), MediaSource.CAMERA_IMAGE)
+                val uri = if (copyImagesToPublicGalleryFolder) Files.copyImagesToPublicGallery(activity, folderName, files.map { it.file }) else null
+                if (uri != null) callbacks.onMediaFilesPicked(uri, MediaSource.CAMERA_IMAGE)
             } catch (error: Throwable) {
                 error.printStackTrace()
                 callbacks.onImagePickerError(EasyImageException("Unable to get the picture returned from camera.", error), MediaSource.CAMERA_IMAGE)
@@ -252,7 +256,7 @@ class EasyImage private constructor(
                 val files = mutableListOf(cameraFile)
 //                if (copyImagesToPublicGalleryFolder) Files.copyFilesInSeparateThread(activity, folderName, files.map { it.file })
                 //FIXME
-                callbacks.onMediaFilesPicked(files.toTypedArray(), MediaSource.CAMERA_VIDEO)
+                //callbacks.onMediaFilesPicked(files.toTypedArray(), MediaSource.CAMERA_VIDEO)
             } catch (error: Throwable) {
                 error.printStackTrace()
                 callbacks.onImagePickerError(EasyImageException("Unable to get the picture returned from camera.", error), MediaSource.CAMERA_IMAGE)
