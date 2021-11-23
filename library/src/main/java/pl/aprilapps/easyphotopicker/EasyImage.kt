@@ -12,13 +12,14 @@ import java.io.IOException
 
 
 class EasyImage private constructor(
-        private val context: Context,
-        private val chooserTitle: String,
-        private val folderName: String,
-        private val allowMultiple: Boolean,
-        private val chooserType: ChooserType,
-        private val copyImagesToPublicGalleryFolder: Boolean,
-        private val easyImageStateHandler: EasyImageStateHandler
+    private val context: Context,
+    private val chooserTitle: String,
+    private val folderName: String,
+    private val challengeId: Long,
+    private val allowMultiple: Boolean,
+    private val chooserType: ChooserType,
+    private val copyImagesToPublicGalleryFolder: Boolean,
+    private val easyImageStateHandler: EasyImageStateHandler
 ) {
 
     private var lastCameraFile: MediaFile? = null
@@ -26,7 +27,7 @@ class EasyImage private constructor(
     interface Callbacks {
         fun onImagePickerError(error: Throwable, source: MediaSource)
 
-        fun onMediaFilesPicked(uri: List<Uri>, source: MediaSource)
+        fun onMediaFilesPicked(uri: List<Uri>, source: MediaSource, challengeId: Long)
 
         fun onCanceled(source: MediaSource)
     }
@@ -42,17 +43,17 @@ class EasyImage private constructor(
     }
 
     private class ActivityCaller(
-            val fragment: Fragment? = null,
-            val activity: Activity? = null,
-            val deprecatedFragment: android.app.Fragment? = null
+        val fragment: Fragment? = null,
+        val activity: Activity? = null,
+        val deprecatedFragment: android.app.Fragment? = null
     ) {
         val context: Context
             get() = (activity ?: fragment?.activity ?: deprecatedFragment?.activity)!!
 
         fun startActivityForResult(intent: Intent, chooser: Int) {
             activity?.startActivityForResult(intent, chooser)
-                    ?: fragment?.startActivityForResult(intent, chooser)
-                    ?: deprecatedFragment?.startActivityForResult(intent, chooser)
+                ?: fragment?.startActivityForResult(intent, chooser)
+                ?: deprecatedFragment?.startActivityForResult(intent, chooser)
         }
     }
 
@@ -70,13 +71,16 @@ class EasyImage private constructor(
                 lastCameraFile = Files.createCameraPictureFile(context)
                 save()
                 val intent = Intents.createChooserIntent(
-                        context = activityCaller.context,
-                        chooserTitle = chooserTitle,
-                        chooserType = chooserType,
-                        cameraFileUri = lastCameraFile!!.uri,
-                        allowMultiple = allowMultiple
+                    context = activityCaller.context,
+                    chooserTitle = chooserTitle,
+                    chooserType = chooserType,
+                    cameraFileUri = lastCameraFile!!.uri,
+                    allowMultiple = allowMultiple
                 )
-                activityCaller.startActivityForResult(intent, RequestCodes.PICK_PICTURE_FROM_CHOOSER)
+                activityCaller.startActivityForResult(
+                    intent,
+                    RequestCodes.PICK_PICTURE_FROM_CHOOSER
+                )
             } catch (error: IOException) {
                 error.printStackTrace()
                 cleanup()
@@ -105,11 +109,15 @@ class EasyImage private constructor(
         getCallerActivity(caller)?.let { activityCaller ->
             lastCameraFile = Files.createCameraPictureFile(context)
             save()
-            val takePictureIntent = Intents.createCameraForImageIntent(activityCaller.context, lastCameraFile!!.uri)
+            val takePictureIntent =
+                Intents.createCameraForImageIntent(activityCaller.context, lastCameraFile!!.uri)
             val capableComponent = takePictureIntent.resolveActivity(context.packageManager)
-                    ?.also {
-                        activityCaller.startActivityForResult(takePictureIntent, RequestCodes.TAKE_PICTURE)
-                    }
+                ?.also {
+                    activityCaller.startActivityForResult(
+                        takePictureIntent,
+                        RequestCodes.TAKE_PICTURE
+                    )
+                }
 
             if (capableComponent == null) {
                 Log.e(EASYIMAGE_LOG_TAG, "No app capable of handling camera intent")
@@ -123,11 +131,15 @@ class EasyImage private constructor(
         getCallerActivity(caller)?.let { activityCaller ->
             lastCameraFile = Files.createCameraVideoFile(context)
             save()
-            val recordVideoIntent = Intents.createCameraForVideoIntent(activityCaller.context, lastCameraFile!!.uri)
+            val recordVideoIntent =
+                Intents.createCameraForVideoIntent(activityCaller.context, lastCameraFile!!.uri)
             val capableComponent = recordVideoIntent.resolveActivity(context.packageManager)
-                    ?.also {
-                        activityCaller.startActivityForResult(recordVideoIntent, RequestCodes.CAPTURE_VIDEO)
-                    }
+                ?.also {
+                    activityCaller.startActivityForResult(
+                        recordVideoIntent,
+                        RequestCodes.CAPTURE_VIDEO
+                    )
+                }
             if (capableComponent == null) {
                 Log.e(EASYIMAGE_LOG_TAG, "No app capable of handling camera intent")
                 cleanup()
@@ -151,7 +163,13 @@ class EasyImage private constructor(
     fun openCameraForVideo(fragment: Fragment) = startCameraForVideo(fragment)
     fun openCameraForVideo(fragment: android.app.Fragment) = startCameraForVideo(fragment)
 
-    fun handleActivityResult(requestCode: Int, resultCode: Int, resultIntent: Intent?, activity: Activity, callbacks: Callbacks) {
+    fun handleActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        resultIntent: Intent?,
+        activity: Activity,
+        callbacks: Callbacks
+    ) {
         // EasyImage request codes are set to be between 374961 and 374965.
         if (requestCode !in 34961..34965) return
 
@@ -183,13 +201,17 @@ class EasyImage private constructor(
         }
     }
 
-    private fun onPickedExistingPicturesFromLocalStorage(resultIntent: Intent, activity: Activity, callbacks: Callbacks) {
+    private fun onPickedExistingPicturesFromLocalStorage(
+        resultIntent: Intent,
+        activity: Activity,
+        callbacks: Callbacks
+    ) {
         Log.d(EASYIMAGE_LOG_TAG, "Existing picture returned from local storage")
         try {
             val uri = resultIntent.data!!
             val photoFile = Files.pickedExistingPicture(activity, uri)
             val mediaFile = MediaFile(uri, photoFile)
-            callbacks.onMediaFilesPicked(mutableListOf(uri), MediaSource.DOCUMENTS)
+            callbacks.onMediaFilesPicked(mutableListOf(uri), MediaSource.DOCUMENTS, challengeId)
         } catch (error: Throwable) {
             error.printStackTrace()
             callbacks.onImagePickerError(error, MediaSource.DOCUMENTS)
@@ -197,7 +219,11 @@ class EasyImage private constructor(
         cleanup()
     }
 
-    private fun onPickedExistingPictures(resultIntent: Intent, activity: Activity, callbacks: Callbacks) {
+    private fun onPickedExistingPictures(
+        resultIntent: Intent,
+        activity: Activity,
+        callbacks: Callbacks
+    ) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                 val clipData = resultIntent.clipData
@@ -212,9 +238,12 @@ class EasyImage private constructor(
                     if (files.isNotEmpty()) {
                         val uris = mutableListOf<Uri>()
                         files.forEach { uris.add(it.uri) }
-                        callbacks.onMediaFilesPicked(uris, MediaSource.GALLERY)
+                        callbacks.onMediaFilesPicked(uris, MediaSource.GALLERY, challengeId)
                     } else {
-                        callbacks.onImagePickerError(EasyImageException("No files were returned from gallery"), MediaSource.GALLERY)
+                        callbacks.onImagePickerError(
+                            EasyImageException("No files were returned from gallery"),
+                            MediaSource.GALLERY
+                        )
                     }
                     cleanup()
                 } else {
@@ -235,14 +264,29 @@ class EasyImage private constructor(
         Log.d(EASYIMAGE_LOG_TAG, "Picture returned from camera")
         lastCameraFile?.let { cameraFile ->
             try {
-                if (cameraFile.uri.toString().isEmpty()) Intents.revokeWritePermission(activity, cameraFile.uri)
+                if (cameraFile.uri.toString().isEmpty()) Intents.revokeWritePermission(
+                    activity,
+                    cameraFile.uri
+                )
                 println("CAMERA FILE $cameraFile")
                 val files = mutableListOf(cameraFile)
-                val uri = if (copyImagesToPublicGalleryFolder) Files.copyImagesToPublicGallery(activity, folderName, files.map { it.file }) else null
-                if (uri != null) callbacks.onMediaFilesPicked(uri, MediaSource.CAMERA_IMAGE)
+                val uri = if (copyImagesToPublicGalleryFolder) Files.copyImagesToPublicGallery(
+                    activity,
+                    folderName,
+                    files.map { it.file }) else null
+                if (uri != null) callbacks.onMediaFilesPicked(
+                    uri,
+                    MediaSource.CAMERA_IMAGE,
+                    challengeId
+                )
             } catch (error: Throwable) {
                 error.printStackTrace()
-                callbacks.onImagePickerError(EasyImageException("Unable to get the picture returned from camera.", error), MediaSource.CAMERA_IMAGE)
+                callbacks.onImagePickerError(
+                    EasyImageException(
+                        "Unable to get the picture returned from camera.",
+                        error
+                    ), MediaSource.CAMERA_IMAGE
+                )
             }
         }
         cleanup()
@@ -252,23 +296,36 @@ class EasyImage private constructor(
         Log.d(EASYIMAGE_LOG_TAG, "Video returned from camera")
         lastCameraFile?.let { cameraFile ->
             try {
-                if (cameraFile.uri.toString().isEmpty()) Intents.revokeWritePermission(activity, cameraFile.uri)
+                if (cameraFile.uri.toString().isEmpty()) Intents.revokeWritePermission(
+                    activity,
+                    cameraFile.uri
+                )
                 val files = mutableListOf(cameraFile)
 //                if (copyImagesToPublicGalleryFolder) Files.copyFilesInSeparateThread(activity, folderName, files.map { it.file })
                 //FIXME
                 //callbacks.onMediaFilesPicked(files.toTypedArray(), MediaSource.CAMERA_VIDEO)
             } catch (error: Throwable) {
                 error.printStackTrace()
-                callbacks.onImagePickerError(EasyImageException("Unable to get the picture returned from camera.", error), MediaSource.CAMERA_IMAGE)
+                callbacks.onImagePickerError(
+                    EasyImageException(
+                        "Unable to get the picture returned from camera.",
+                        error
+                    ), MediaSource.CAMERA_IMAGE
+                )
             }
         }
         cleanup()
     }
 
-    private fun onFileReturnedFromChooser(resultIntent: Intent?, activity: Activity, callbacks: Callbacks) {
+    private fun onFileReturnedFromChooser(
+        resultIntent: Intent?,
+        activity: Activity,
+        callbacks: Callbacks
+    ) {
         Log.d(EASYIMAGE_LOG_TAG, "File returned from chooser")
         if (resultIntent != null && !Intents.isTherePhotoTakenWithCameraInsideIntent(resultIntent)
-                && (resultIntent.data != null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && resultIntent.clipData != null)) {
+            && (resultIntent.data != null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && resultIntent.clipData != null)
+        ) {
             onPickedExistingPictures(resultIntent, activity, callbacks)
             removeCameraFileAndCleanup()
         } else if (lastCameraFile != null) {
@@ -292,7 +349,10 @@ class EasyImage private constructor(
 
     private fun cleanup() {
         lastCameraFile?.let { cameraFile ->
-            Log.d(EASYIMAGE_LOG_TAG, "Clearing reference to camera file of size: ${cameraFile.file.length()}")
+            Log.d(
+                EASYIMAGE_LOG_TAG,
+                "Clearing reference to camera file of size: ${cameraFile.file.length()}"
+            )
             lastCameraFile = null
             save()
         }
@@ -300,9 +360,9 @@ class EasyImage private constructor(
 
     private fun save() {
         easyImageStateHandler.saveEasyImageState(
-                Bundle().apply {
-                    putParcelable(KEY_LAST_CAMERA_FILE, lastCameraFile)
-                }
+            Bundle().apply {
+                putParcelable(KEY_LAST_CAMERA_FILE, lastCameraFile)
+            }
         )
     }
 
@@ -321,7 +381,10 @@ class EasyImage private constructor(
             private fun getAppName(context: Context): String = try {
                 context.applicationInfo.loadLabel(context.packageManager).toString()
             } catch (error: Throwable) {
-                Log.e(EASYIMAGE_LOG_TAG, "App name couldn't be found. Probably no label was specified in the AndroidManifest.xml. Using EasyImage as a folder name for files.")
+                Log.e(
+                    EASYIMAGE_LOG_TAG,
+                    "App name couldn't be found. Probably no label was specified in the AndroidManifest.xml. Using EasyImage as a folder name for files."
+                )
                 error.printStackTrace()
                 "EasyImage"
             }
@@ -329,10 +392,12 @@ class EasyImage private constructor(
 
         private var chooserTitle: String = ""
         private var folderName: String = getAppName(context)
+        private var challengeId: Long = 0
         private var allowMultiple = false
         private var chooserType: ChooserType = ChooserType.CAMERA_AND_DOCUMENTS
         private var copyImagesToPublicGalleryFolder: Boolean = false
-        private var easyImageStateHandler: EasyImageStateHandler = EasyImageStateHandler.DefaultStateHandler
+        private var easyImageStateHandler: EasyImageStateHandler =
+            EasyImageStateHandler.DefaultStateHandler
 
         fun setChooserTitle(chooserTitle: String): Builder {
             this.chooserTitle = chooserTitle
@@ -341,6 +406,11 @@ class EasyImage private constructor(
 
         fun setFolderName(folderName: String): Builder {
             this.folderName = folderName
+            return this
+        }
+
+        fun setChallengeId(challengeId: Long): Builder {
+            this.challengeId = challengeId
             return this
         }
 
@@ -366,13 +436,14 @@ class EasyImage private constructor(
 
         fun build(): EasyImage {
             return EasyImage(
-                    context = context,
-                    chooserTitle = chooserTitle,
-                    folderName = folderName,
-                    chooserType = chooserType,
-                    allowMultiple = allowMultiple,
-                    copyImagesToPublicGalleryFolder = copyImagesToPublicGalleryFolder,
-                    easyImageStateHandler = easyImageStateHandler
+                context = context,
+                chooserTitle = chooserTitle,
+                folderName = folderName,
+                challengeId = challengeId,
+                chooserType = chooserType,
+                allowMultiple = allowMultiple,
+                copyImagesToPublicGalleryFolder = copyImagesToPublicGalleryFolder,
+                easyImageStateHandler = easyImageStateHandler
             )
         }
     }

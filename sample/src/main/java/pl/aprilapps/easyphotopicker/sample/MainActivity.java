@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements EasyImage.EasyIma
         easyImage = new EasyImage.Builder(this)
                 .setChooserTitle("Pick media")
                 .setCopyImagesToPublicGalleryFolder(true) // THIS requires granting WRITE_EXTERNAL_STORAGE permission for devices running Android 9 or lower
+                .setChallengeId(12)
 //                .setChooserType(ChooserType.CAMERA_AND_DOCUMENTS)
                 .setChooserType(ChooserType.CAMERA_AND_GALLERY)
                 .setFolderName("EasyImage sample")
@@ -184,8 +185,8 @@ public class MainActivity extends AppCompatActivity implements EasyImage.EasyIma
 
         easyImage.handleActivityResult(requestCode, resultCode, data, this, new DefaultCallback() {
             @Override
-            public void onMediaFilesPicked(@NonNull List<? extends Uri> uri, @NonNull MediaSource source) {
-                System.out.println("PICKED " + uri);
+            public void onMediaFilesPicked(List<? extends Uri> uri, MediaSource source, long challengeId) {
+                System.out.println("MEDIA PICKED " + uri + " CHALLENGEID " + challengeId);
             }
 
 //            @Override
