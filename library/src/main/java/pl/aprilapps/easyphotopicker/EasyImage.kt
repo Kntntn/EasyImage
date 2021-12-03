@@ -268,7 +268,7 @@ class EasyImage private constructor(
                     activity,
                     cameraFile.uri
                 )
-                println("CAMERA FILE $cameraFile")
+
                 val files = mutableListOf(cameraFile)
                 val uri = if (copyImagesToPublicGalleryFolder) Files.copyImagesToPublicGallery(
                     activity,

@@ -106,7 +106,7 @@ object Files {
         val outputStream: OutputStream = contentResolver.openOutputStream(copyUri)!!
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
-        println("Copied image to public gallery: ${copyUri}")
+
         return copyUri
     }
 

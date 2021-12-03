@@ -185,17 +185,11 @@ public class MainActivity extends AppCompatActivity implements EasyImage.EasyIma
 
         easyImage.handleActivityResult(requestCode, resultCode, data, this, new DefaultCallback() {
             @Override
-            public void onMediaFilesPicked(List<? extends Uri> uri, MediaSource source, long challengeId) {
-                System.out.println("MEDIA PICKED " + uri + " CHALLENGEID " + challengeId);
+            public void onMediaFilesPicked(@NonNull List<? extends Uri> uris, @NonNull MediaSource source, long challengeId) {
+                for (Uri uri : uris) {
+                    Log.d("EasyImage", "Image file returned: " + uri.toString());
+                }
             }
-
-//            @Override
-//            public void onMediaFilesPicked(MediaFile[] imageFiles, MediaSource source) {
-//                for (MediaFile imageFile : imageFiles) {
-//                    Log.d("EasyImage", "Image file returned: " + imageFile.getFile().toString());
-//                }
-//                onPhotosReturned(imageFiles);
-//            }
 
             @Override
             public void onImagePickerError(@NonNull Throwable error, @NonNull MediaSource source) {
