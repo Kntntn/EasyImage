@@ -6,11 +6,14 @@ apply plugin: 'maven-publish'
 def artifactId = 'EasyImageLegacy'
 def groupId = 'com.github.jkwiecien'
 
-project.afterEvaluate {
+afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
+                from components.release
+                artifactId = project.name
                 pom {
+                    name = POM_NAME
                     description = POM_DESCRIPTION
                     licenses {
                         license {
@@ -25,6 +28,16 @@ project.afterEvaluate {
                 setArtifactId(artifactId)
                 version version_name
                 artifact(bundleReleaseAar)
+                pom {
+                    name = POM_NAME
+                    description = POM_DESCRIPTION
+                    licenses {
+                        license {
+                            name = POM_LICENSE_NAME
+                            url = POM_LICENSE_URL
+                        }
+                    }
+                }
             }
         }
     }
