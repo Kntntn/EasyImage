@@ -9,20 +9,6 @@ def groupId = 'com.github.jkwiecien'
 afterEvaluate {
     publishing {
         publications {
-            release(MavenPublication) {
-                from components.release
-                artifactId = project.name
-                pom {
-                    name = POM_NAME
-                    description = POM_DESCRIPTION
-                    licenses {
-                        license {
-                            name = POM_LICENSE_NAME
-                            url = POM_LICENSE_URL
-                        }
-                    }
-                }
-            }
             library(MavenPublication) {
                 setGroupId(groupId)
                 setArtifactId(artifactId)
