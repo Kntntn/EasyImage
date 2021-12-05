@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 apply plugin: 'maven-publish'
 
 def artifactId = 'EasyImageLegacy'
@@ -9,6 +9,17 @@ def groupId = 'com.github.jkwiecien'
 project.afterEvaluate {
     publishing {
         publications {
+            release(MavenPublication) {
+                pom {
+                    description = POM_DESCRIPTION
+                    licenses {
+                        license {
+                            name = POM_LICENSE_NAME
+                            url = POM_LICENSE_URL
+                        }
+                    }
+                }
+            }
             library(MavenPublication) {
                 setGroupId(groupId)
                 setArtifactId(artifactId)
