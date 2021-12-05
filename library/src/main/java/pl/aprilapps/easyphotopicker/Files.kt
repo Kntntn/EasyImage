@@ -86,43 +86,49 @@ object Files {
         }
     }
 
-    @RequiresApi(29)
+    //@RequiresApi(29)
     private fun copyImageToPublicGallery(
         context: Context,
         fileToCopy: File,
         folderName: String
     ): Uri {
+        println("WHY DIS NOT WORKING")
         val bitmapToCopy = getFixedRotationBitmap(fileToCopy)
         val contentResolver = context.contentResolver
         val contentValues = ContentValues()
         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileToCopy.name)
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpg")
         contentValues.put(
-            MediaStore.MediaColumns.RELATIVE_PATH,
-            "${Environment.DIRECTORY_PICTURES}/$folderName"
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString(),
+            "/$folderName"
         )
-        val copyUri: Uri =
-            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-        val outputStream: OutputStream = contentResolver.openOutputStream(copyUri)!!
+        println("afs $contentValues.")
+        val copyUri: Uri? =
+            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        println("agagd $copyUri")
+        val outputStream: OutputStream = contentResolver.openOutputStream(copyUri!!)!!
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
+        println("COPIED $copyUri")
 
         return copyUri
     }
 
     private fun legacyCopyImageToPublicGallery(fileToCopy: File, folderName: String): Uri {
         val bitmapToCopy = getFixedRotationBitmap(fileToCopy)
+
         val legacyExternalStorageDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-            folderName
-        )
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                ""
+            )
+
         if (!legacyExternalStorageDir.exists()) legacyExternalStorageDir.mkdirs()
         val copyFile = File(legacyExternalStorageDir, fileToCopy.name)
         copyFile.createNewFile()
         val outputStream = FileOutputStream(copyFile)
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
-        Log.d(EASYIMAGE_LOG_TAG, "Copied image to public gallery: ${copyFile.path}")
+        println("Copied image to public gallery: ${copyFile.path}")
         return Uri.fromFile(copyFile)
     }
 
@@ -133,11 +139,12 @@ object Files {
         filesToCopy: List<File>
     ): List<Uri> {
         return filesToCopy.map {
-            if (Build.VERSION.SDK_INT >= 29) {
+            //if (Build.VERSION.SDK_INT >= 29) {
+            println(it)
                 copyImageToPublicGallery(context, it, folderName)
-            } else {
-                legacyCopyImageToPublicGallery(it, folderName)
-            }
+//            } else {
+//                legacyCopyImageToPublicGallery(it, folderName)
+//            }
         }
         //runMediaScanner(context, copiedFilesPaths.filterNotNull())
     }
