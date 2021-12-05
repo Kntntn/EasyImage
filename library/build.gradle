@@ -24,6 +24,11 @@ afterEvaluate {
                             url = POM_LICENSE_URL
                         }
                     }
+                    developers {
+                        developer {
+                            name = POM_DEVELOPER_NAME
+                        }
+                    }
                 }
             }
         }
