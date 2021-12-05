@@ -17,6 +17,7 @@ afterEvaluate {
                 pom {
                     name = POM_NAME
                     description = POM_DESCRIPTION
+                    url = POM_URL
                     licenses {
                         license {
                             name = POM_LICENSE_NAME
