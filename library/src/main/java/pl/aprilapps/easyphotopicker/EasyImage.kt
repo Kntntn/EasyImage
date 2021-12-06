@@ -1,12 +1,15 @@
 package pl.aprilapps.easyphotopicker
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
+import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.fragment.app.Fragment
 import java.io.IOException
 
@@ -111,17 +114,11 @@ class EasyImage private constructor(
             save()
             val takePictureIntent =
                 Intents.createCameraForImageIntent(activityCaller.context, lastCameraFile!!.uri)
-            val capableComponent = takePictureIntent.resolveActivity(context.packageManager)
-                ?.also {
-                    activityCaller.startActivityForResult(
-                        takePictureIntent,
-                        RequestCodes.TAKE_PICTURE
-                    )
-                }
 
-            if (capableComponent == null) {
-                Log.e(EASYIMAGE_LOG_TAG, "No app capable of handling camera intent")
-                cleanup()
+            try {
+                activityCaller.startActivityForResult(takePictureIntent, RequestCodes.TAKE_PICTURE)
+            } catch (e: ActivityNotFoundException) {
+                // display error state to the user
             }
         }
     }
