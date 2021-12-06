@@ -110,23 +110,20 @@ object Files {
         return copyUri
     }
 
-    private fun legacyCopyImageToPublicGallery(context: Context, fileToCopy: File, folderName: String): Uri {
+    private fun legacyCopyImageToPublicGallery(fileToCopy: File, folderName: String): Uri {
         val bitmapToCopy = getFixedRotationBitmap(fileToCopy)
-        val contentResolver = context.contentResolver
-        val contentValues = ContentValues()
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileToCopy.name)
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpg")
-        contentValues.put(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString(),
-            "/$folderName"
+        val legacyExternalStorageDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            folderName
         )
-        val copyUri: Uri? =
-            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-        val outputStream: OutputStream = contentResolver.openOutputStream(copyUri!!)!!
+        if (!legacyExternalStorageDir.exists()) legacyExternalStorageDir.mkdirs()
+        val copyFile = File(legacyExternalStorageDir, fileToCopy.name)
+        copyFile.createNewFile()
+        val outputStream = FileOutputStream(copyFile)
         bitmapToCopy.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
         outputStream.close()
 
-        return copyUri
+        return Uri.fromFile(copyFile)
     }
 
     internal fun copyImagesToPublicGallery(
@@ -138,7 +135,7 @@ object Files {
             if (Build.VERSION.SDK_INT >= 29) {
                 copyImageToPublicGallery(context, it, folderName)
             } else {
-                legacyCopyImageToPublicGallery(context, it, folderName)
+                legacyCopyImageToPublicGallery(it, folderName)
             }
         }
     }

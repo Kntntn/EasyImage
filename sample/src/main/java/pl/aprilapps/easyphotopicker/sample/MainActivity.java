@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements EasyImage.EasyIma
             @Override
             public void onMediaFilesPicked(@NonNull List<? extends Uri> uris, @NonNull MediaSource source, long challengeId) {
                 for (Uri uri : uris) {
-                    Log.d("EasyImage", "Image file returned: " + uri.toString());
+                   System.out.println("Image file returned: " + uri.toString());
                 }
             }
 
